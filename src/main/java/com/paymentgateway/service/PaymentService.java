@@ -11,6 +11,7 @@ import com.paymentgateway.entity.Order;
 import com.paymentgateway.entity.Payment;
 import com.paymentgateway.entity.PaymentStatus;
 import com.paymentgateway.exception.CannotCancelPaymentException;
+import com.paymentgateway.exception.OrderAlreadyPaidException;
 import com.paymentgateway.exception.OrderNotFoundException;
 import com.paymentgateway.exception.PaymentNotFoundException;
 import com.paymentgateway.processor.PaymentProcessor;
@@ -52,7 +53,13 @@ public class PaymentService {
                 .orElseThrow(() ->
                         new OrderNotFoundException(request.getOrderId())
                 );
+        
+        //2.1 If payment with success status already exists then with changing idempotency key we were able to carry multiple payment for same order, so we handled this here
+        Optional<Payment> successfulPayment = paymentRespository.findByOrderIdAndStatus(request.getOrderId(), PaymentStatus.SUCCESS);
 
+        if(successfulPayment.isPresent())
+            throw new OrderAlreadyPaidException(request.getOrderId());
+        
         // 3. Create PROCESSING payment
         Payment payment = new Payment();
 
