@@ -1,5 +1,6 @@
 package com.paymentgateway.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -7,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
+
 import com.paymentgateway.entity.Payment;
 import com.paymentgateway.entity.PaymentStatus;
 
@@ -15,6 +17,7 @@ public interface PaymentRespository
 
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
     Optional<Payment> findByOrderIdAndStatus(Long orderId, PaymentStatus paymentStatus);
+    List<Payment> findByOrderId(Long orderId);
 
     @Modifying
     @Transactional

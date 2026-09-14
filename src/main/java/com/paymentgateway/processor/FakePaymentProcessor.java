@@ -14,11 +14,11 @@ public class FakePaymentProcessor implements PaymentProcessor {
         System.out.println("Calling External Payment Processor");
         System.out.println("Charging amount: " + amount);
 
-        // try {
-        //     Thread.sleep(25000); // 25 seconds
-        // } catch (InterruptedException e) {
-        //     Thread.currentThread().interrupt();
-        // }
+        try {
+            Thread.sleep(15000); // 15 seconds
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         return "TXN-" + UUID.randomUUID();
     }

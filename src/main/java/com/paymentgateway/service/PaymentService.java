@@ -1,6 +1,8 @@
 package com.paymentgateway.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -137,6 +139,23 @@ public class PaymentService {
                 );
 
         return convertToResponse(payment);
+    }
+
+    public List<PaymentResponse>getAllPaymentsForOrderId (Long orderId){
+        //check if order exists
+        orderRepository.findById(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
+
+        //get all payments for the order    
+        List<Payment> payments = paymentRespository.findByOrderId(orderId);
+
+        //convert entities to response
+        List<PaymentResponse>responses = new ArrayList<>();
+
+        for(Payment payment: payments){
+            responses.add(convertToResponse(payment));
+        }
+
+        return responses;
     }
 
     private PaymentResponse convertToResponse(Payment payment) {
