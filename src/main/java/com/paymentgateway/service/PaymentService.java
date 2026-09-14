@@ -13,6 +13,7 @@ import com.paymentgateway.entity.Order;
 import com.paymentgateway.entity.Payment;
 import com.paymentgateway.entity.PaymentStatus;
 import com.paymentgateway.exception.CannotCancelPaymentException;
+import com.paymentgateway.exception.CannotRefundPaymentException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
 import com.paymentgateway.exception.OrderNotFoundException;
 import com.paymentgateway.exception.PaymentNotFoundException;
@@ -156,6 +157,18 @@ public class PaymentService {
         }
 
         return responses;
+    }
+
+    public PaymentResponse refundPayment(Long paymentId) {
+        Payment payment = paymentRespository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if(PaymentStatus.SUCCESS.equals(payment.getStatus()))
+            payment.setStatus(PaymentStatus.REFUNDED);
+        else   
+            throw new CannotRefundPaymentException(paymentId);
+        
+        payment = paymentRespository.save(payment);
+        return convertToResponse(payment);
     }
 
     private PaymentResponse convertToResponse(Payment payment) {
