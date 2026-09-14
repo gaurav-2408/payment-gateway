@@ -36,7 +36,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler (CannotRefundPaymentException.class)
-    public ResponseEntity<ErrorResponse> handleCannotRefundPaymentException(CannotCancelPaymentException exception){
+    public ResponseEntity<ErrorResponse> handleCannotRefundPaymentException(CannotRefundPaymentException exception){
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
     }
 }
