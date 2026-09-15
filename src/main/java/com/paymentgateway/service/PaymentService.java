@@ -21,6 +21,8 @@ import com.paymentgateway.processor.PaymentProcessor;
 import com.paymentgateway.repository.OrderRepository;
 import com.paymentgateway.repository.PaymentRespository;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class PaymentService {
 
@@ -107,6 +109,7 @@ public class PaymentService {
         return convertToResponse(finalPayment);
     }
 
+    @Transactional 
     public PaymentResponse cancelPayment(Long paymentId) {
 
         Payment payment = paymentRespository
@@ -159,6 +162,7 @@ public class PaymentService {
         return responses;
     }
 
+    @Transactional 
     public PaymentResponse refundPayment(Long paymentId) {
         Payment payment = paymentRespository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
