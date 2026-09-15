@@ -12,6 +12,7 @@ import com.paymentgateway.dto.PaymentResponse;
 import com.paymentgateway.entity.Order;
 import com.paymentgateway.entity.Payment;
 import com.paymentgateway.entity.PaymentStatus;
+import com.paymentgateway.entity.Refund;
 import com.paymentgateway.exception.CannotCancelPaymentException;
 import com.paymentgateway.exception.CannotRefundPaymentException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
@@ -20,6 +21,7 @@ import com.paymentgateway.exception.PaymentNotFoundException;
 import com.paymentgateway.processor.PaymentProcessor;
 import com.paymentgateway.repository.OrderRepository;
 import com.paymentgateway.repository.PaymentRespository;
+import com.paymentgateway.repository.RefundRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -29,15 +31,18 @@ public class PaymentService {
     private final PaymentProcessor paymentProcessor;
     private final OrderRepository orderRepository;
     private final PaymentRespository paymentRespository;
+    private final RefundRepository refundRepository;
 
     public PaymentService(
             PaymentProcessor paymentProcessor,
             OrderRepository orderRepository,
-            PaymentRespository paymentRespository) {
+            PaymentRespository paymentRespository,
+            RefundRepository refundRepository) {
 
         this.paymentProcessor = paymentProcessor;
         this.orderRepository = orderRepository;
         this.paymentRespository = paymentRespository;
+        this.refundRepository = refundRepository;
     }
 
     public PaymentResponse processPayment(PaymentRequest request) {
@@ -172,6 +177,15 @@ public class PaymentService {
             throw new CannotRefundPaymentException(paymentId);
         
         payment = paymentRespository.save(payment);
+
+        Refund refund = new Refund();
+        refund.setPaymentId(paymentId);
+        refund.setPaymentTransactionId(payment.getProcessorTransactionId());
+        refund.setAmount(payment.getAmount());
+        refund.setStatus(PaymentStatus.REFUNDED);
+
+        refund = refundRepository.save(refund);
+
         return convertToResponse(payment);
     }
 
