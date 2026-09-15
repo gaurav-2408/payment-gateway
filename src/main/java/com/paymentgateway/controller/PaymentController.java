@@ -47,4 +47,11 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse>cancelPayment(@PathVariable ("paymentId") Long paymentId){
         return ResponseEntity.ok(paymentService.cancelPayment(paymentId));
     }
+
+    @PostMapping ("/{paymentId}/refund")
+    public ResponseEntity<PaymentResponse> refundPayment(@Valid @PathVariable ("paymentId") Long PaymentId){
+        PaymentResponse payment = paymentService.refundPayment(PaymentId);
+
+        return ResponseEntity.ok(payment);
+    }
 }
