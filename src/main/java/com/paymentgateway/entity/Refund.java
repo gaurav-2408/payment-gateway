@@ -1,6 +1,7 @@
 package com.paymentgateway.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,21 +13,26 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity 
-@Table (name = "refunds")
-@Data 
-@NoArgsConstructor 
+@Entity
+@Table(name = "refunds")
+@Data
+@NoArgsConstructor
 public class Refund {
-    
-    @Id @GeneratedValue (strategy = GenerationType.IDENTITY)
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Long paymentId;
 
     private BigDecimal amount;
 
-    @Enumerated (EnumType.STRING)
-    private PaymentStatus status;
+    @Enumerated(EnumType.STRING)
+    private RefundStatus status;
 
     private String paymentTransactionId;
+
+    private String refundTransactionId;
+
+    private LocalDateTime createdAt;
 }

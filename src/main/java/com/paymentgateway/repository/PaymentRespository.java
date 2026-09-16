@@ -19,7 +19,7 @@ public interface PaymentRespository
     Optional<Payment> findByOrderIdAndStatus(Long orderId, PaymentStatus paymentStatus);
     List<Payment> findByOrderId(Long orderId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
         UPDATE Payment p
@@ -33,7 +33,7 @@ public interface PaymentRespository
             @Param("transactionId") String transactionId
     );
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
         UPDATE Payment p
