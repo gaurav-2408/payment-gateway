@@ -46,8 +46,7 @@ public class PaymentService {
         this.paymentRespository = paymentRespository;
         this.refundRepository = refundRepository;
     }
-
-    @Transactional 
+ 
     public PaymentResponse processPayment(PaymentRequest request) {
 
         // 1. Idempotency check

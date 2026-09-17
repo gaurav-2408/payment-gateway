@@ -1,7 +1,6 @@
 package com.paymentgateway.controller;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -12,6 +11,7 @@ import com.paymentgateway.exception.CannotRefundPaymentException;
 import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
 import com.paymentgateway.exception.OrderNotFoundException;
+import com.paymentgateway.exception.PaymentDeclinedException;
 import com.paymentgateway.exception.PaymentNotFoundException;
 import com.paymentgateway.exception.PaymentTimeoutException;
 
@@ -52,4 +52,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handlePaymentTimeoutException(PaymentTimeoutException exception){
         return ResponseEntity.status(HttpStatus.GATEWAY_TIMEOUT).body(new ErrorResponse(exception.getMessage()));
     }
+
+    @ExceptionHandler (PaymentDeclinedException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentDeclinedException(PaymentDeclinedException exception){
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new ErrorResponse(exception.getMessage()));
+    }
 }
+  

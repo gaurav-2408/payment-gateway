@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
 
 import com.paymentgateway.exception.InvalidTokenException;
+import com.paymentgateway.exception.PaymentDeclinedException;
+import com.paymentgateway.exception.PaymentTimeoutException;
 
 import java.util.UUID;
 
@@ -16,27 +18,22 @@ public class FakePaymentProcessor implements PaymentProcessor {
         System.out.println("Calling External Payment Processor");
         System.out.println("Charging amount: " + amount);
 
+        try {
+            Thread.sleep(15000); // simulate slow external processor
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
         switch (paymentMethodToken) {
 
             case "tok_success":
                 return "TXN-" + UUID.randomUUID();
 
             case "tok_fail":
-                throw new RuntimeException(
-                        "Payment declined by processor");
+                throw new PaymentDeclinedException();
 
             case "tok_timeout":
-                try {
-                    Thread.sleep(15000); // simulate slow external processor
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-
-                    throw new RuntimeException(
-                            "Payment processing interrupted", e);
-                }
-
-                throw new RuntimeException(
-                        "Payment processor timed out");
+                throw new PaymentTimeoutException(null);
 
             default:
                 throw new InvalidTokenException(paymentMethodToken);
