@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import com.paymentgateway.entity.Order;
 import com.paymentgateway.entity.Payment;
 import com.paymentgateway.entity.PaymentStatus;
 import com.paymentgateway.entity.Refund;
+import com.paymentgateway.entity.RefundStatus;
 import com.paymentgateway.exception.CannotCancelPaymentException;
 import com.paymentgateway.exception.CannotRefundPaymentException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
@@ -45,6 +47,7 @@ public class PaymentService {
         this.refundRepository = refundRepository;
     }
 
+    @Transactional 
     public PaymentResponse processPayment(PaymentRequest request) {
 
         // 1. Idempotency check
@@ -171,20 +174,21 @@ public class PaymentService {
     public PaymentResponse refundPayment(Long paymentId) {
         Payment payment = paymentRespository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
-        if(PaymentStatus.SUCCESS.equals(payment.getStatus()))
-            payment.setStatus(PaymentStatus.REFUNDED);
-        else   
+        if(!PaymentStatus.SUCCESS.equals(payment.getStatus())) 
             throw new CannotRefundPaymentException(paymentId);
-        
-        payment = paymentRespository.save(payment);
 
         Refund refund = new Refund();
         refund.setPaymentId(paymentId);
         refund.setPaymentTransactionId(payment.getProcessorTransactionId());
         refund.setAmount(payment.getAmount());
-        refund.setStatus(PaymentStatus.REFUNDED);
+        refund.setStatus(RefundStatus.SUCCESS);
+        refund.setCreatedAt(LocalDateTime.now());
+        refund.setRefundTransactionId("REF-" + UUID.randomUUID());
 
         refund = refundRepository.save(refund);
+
+        payment.setStatus(PaymentStatus.REFUNDED);
+        payment = paymentRespository.save(payment);
 
         return convertToResponse(payment);
     }
