@@ -3,11 +3,15 @@ package com.paymentgateway.processor;
 import java.math.BigDecimal;
 
 import org.springframework.stereotype.Component;
+
+import com.paymentgateway.exception.InvalidTokenException;
+import com.paymentgateway.exception.PaymentDeclinedException;
+import com.paymentgateway.exception.PaymentTimeoutException;
+
 import java.util.UUID;
 
 @Component
 public class FakePaymentProcessor implements PaymentProcessor {
-
     @Override
     public String processPayment(BigDecimal amount, String paymentMethodToken) {
 
@@ -15,11 +19,24 @@ public class FakePaymentProcessor implements PaymentProcessor {
         System.out.println("Charging amount: " + amount);
 
         try {
-            Thread.sleep(15000); // 15 seconds
+            Thread.sleep(15000); // simulate slow external processor
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
 
-        return "TXN-" + UUID.randomUUID();
+        switch (paymentMethodToken) {
+
+            case "tok_success":
+                return "TXN-" + UUID.randomUUID();
+
+            case "tok_fail":
+                throw new PaymentDeclinedException();
+
+            case "tok_timeout":
+                throw new PaymentTimeoutException(null);
+
+            default:
+                throw new InvalidTokenException(paymentMethodToken);
+        }
     }
 }
