@@ -16,32 +16,43 @@ public interface PaymentRespository
         extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
+
     Optional<Payment> findByOrderIdAndStatus(Long orderId, PaymentStatus paymentStatus);
+
     List<Payment> findByOrderId(Long orderId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
-        UPDATE Payment p
-        SET p.status = com.paymentgateway.entity.PaymentStatus.SUCCESS,
-            p.processorTransactionId = :transactionId
-        WHERE p.id = :paymentId
-        AND p.status = com.paymentgateway.entity.PaymentStatus.PROCESSING
-    """)
+                UPDATE Payment p
+                SET p.status = com.paymentgateway.entity.PaymentStatus.SUCCESS,
+                    p.processorTransactionId = :transactionId
+                WHERE p.id = :paymentId
+                AND p.status = com.paymentgateway.entity.PaymentStatus.PROCESSING
+            """)
     int markSuccessIfProcessing(
             @Param("paymentId") Long paymentId,
-            @Param("transactionId") String transactionId
-    );
+            @Param("transactionId") String transactionId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("""
-        UPDATE Payment p
-        SET p.status = com.paymentgateway.entity.PaymentStatus.FAILED
-        WHERE p.id = :paymentId
-        AND p.status = com.paymentgateway.entity.PaymentStatus.PROCESSING
-    """)
+                UPDATE Payment p
+                SET p.status = com.paymentgateway.entity.PaymentStatus.FAILED
+                WHERE p.id = :paymentId
+                AND p.status = com.paymentgateway.entity.PaymentStatus.PROCESSING
+            """)
     int markFailedIfProcessing(
-            @Param("paymentId") Long paymentId
-    );
+            @Param("paymentId") Long paymentId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("""
+                UPDATE Payment p
+                SET p.status = com.paymentgateway.entity.PaymentStatus.PENDING
+                WHERE p.id = :paymentId
+                AND p.status = com.paymentgateway.entity.PaymentStatus.PROCESSING
+            """)
+    int markPendingIfProcessing(
+            @Param("paymentId") Long paymentId);
 }
