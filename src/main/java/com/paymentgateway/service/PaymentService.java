@@ -17,9 +17,12 @@ import com.paymentgateway.entity.Refund;
 import com.paymentgateway.entity.RefundStatus;
 import com.paymentgateway.exception.CannotCancelPaymentException;
 import com.paymentgateway.exception.CannotRefundPaymentException;
+import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
 import com.paymentgateway.exception.OrderNotFoundException;
+import com.paymentgateway.exception.PaymentDeclinedException;
 import com.paymentgateway.exception.PaymentNotFoundException;
+import com.paymentgateway.exception.PaymentTimeoutException;
 import com.paymentgateway.processor.PaymentProcessor;
 import com.paymentgateway.repository.OrderRepository;
 import com.paymentgateway.repository.PaymentRespository;
@@ -100,10 +103,17 @@ public class PaymentService {
                     processorTransactionId
             );
 
-        } catch (Exception e) {
+        } catch (PaymentDeclinedException e) {
 
             // Set FAILED only if DB status is still PROCESSING
             paymentRespository.markFailedIfProcessing(paymentId);
+            throw e;
+        } catch (PaymentTimeoutException e){
+            paymentRespository.markPendingIfProcessing(paymentId);
+            throw e;
+        } catch (InvalidTokenException e){
+            paymentRespository.markFailedIfProcessing(paymentId);
+            throw e;
         }
 
         // 6. Read final state
