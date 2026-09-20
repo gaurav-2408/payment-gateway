@@ -16,6 +16,7 @@ import com.paymentgateway.entity.PaymentStatus;
 import com.paymentgateway.entity.Refund;
 import com.paymentgateway.entity.RefundStatus;
 import com.paymentgateway.exception.CannotCancelPaymentException;
+import com.paymentgateway.exception.CannotReconcilePaymentException;
 import com.paymentgateway.exception.CannotRefundPaymentException;
 import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
@@ -49,14 +50,12 @@ public class PaymentService {
         this.paymentRespository = paymentRespository;
         this.refundRepository = refundRepository;
     }
- 
+
     public PaymentResponse processPayment(PaymentRequest request) {
 
         // 1. Idempotency check
-        Optional<Payment> existingPayment =
-                paymentRespository.findByIdempotencyKey(
-                        request.getIdempotencyKey()
-                );
+        Optional<Payment> existingPayment = paymentRespository.findByIdempotencyKey(
+                request.getIdempotencyKey());
 
         if (existingPayment.isPresent()) {
             return convertToResponse(existingPayment.get());
@@ -65,16 +64,17 @@ public class PaymentService {
         // 2. Validate order
         Order order = orderRepository
                 .findById(request.getOrderId())
-                .orElseThrow(() ->
-                        new OrderNotFoundException(request.getOrderId())
-                );
-        
-        //2.1 If payment with success status already exists then with changing idempotency key we were able to carry multiple payment for same order, so we handled this here
-        Optional<Payment> successfulPayment = paymentRespository.findByOrderIdAndStatus(request.getOrderId(), PaymentStatus.SUCCESS);
+                .orElseThrow(() -> new OrderNotFoundException(request.getOrderId()));
 
-        if(successfulPayment.isPresent())
+        // 2.1 If payment with success status already exists then with changing
+        // idempotency key we were able to carry multiple payment for same order, so we
+        // handled this here
+        Optional<Payment> successfulPayment = paymentRespository.findByOrderIdAndStatus(request.getOrderId(),
+                PaymentStatus.SUCCESS);
+
+        if (successfulPayment.isPresent())
             throw new OrderAlreadyPaidException(request.getOrderId());
-        
+
         // 3. Create PROCESSING payment
         Payment payment = new Payment();
 
@@ -91,27 +91,24 @@ public class PaymentService {
         try {
 
             // 4. External processor call - waits 25 seconds
-            String processorTransactionId =
-                    paymentProcessor.processPayment(
-                            order.getAmount(),
-                            request.getPaymentMethodToken()
-                    );
+            String processorTransactionId = paymentProcessor.processPayment(
+                    order.getAmount(),
+                    request.getPaymentMethodToken());
 
             // 5. Set SUCCESS only if DB status is still PROCESSING
             paymentRespository.markSuccessIfProcessing(
                     paymentId,
-                    processorTransactionId
-            );
+                    processorTransactionId);
 
         } catch (PaymentDeclinedException e) {
 
             // Set FAILED only if DB status is still PROCESSING
             paymentRespository.markFailedIfProcessing(paymentId);
             throw e;
-        } catch (PaymentTimeoutException e){
+        } catch (PaymentTimeoutException e) {
             paymentRespository.markPendingIfProcessing(paymentId);
             throw e;
-        } catch (InvalidTokenException e){
+        } catch (InvalidTokenException e) {
             paymentRespository.markFailedIfProcessing(paymentId);
             throw e;
         }
@@ -119,21 +116,17 @@ public class PaymentService {
         // 6. Read final state
         Payment finalPayment = paymentRespository
                 .findById(paymentId)
-                .orElseThrow(() ->
-                        new PaymentNotFoundException(paymentId)
-                );
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         return convertToResponse(finalPayment);
     }
 
-    @Transactional 
+    @Transactional
     public PaymentResponse cancelPayment(Long paymentId) {
 
         Payment payment = paymentRespository
                 .findById(paymentId)
-                .orElseThrow(() ->
-                        new PaymentNotFoundException(paymentId)
-                );
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         PaymentStatus paymentStatus = payment.getStatus();
 
@@ -155,35 +148,34 @@ public class PaymentService {
 
         Payment payment = paymentRespository
                 .findById(paymentId)
-                .orElseThrow(() ->
-                        new PaymentNotFoundException(paymentId)
-                );
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         return convertToResponse(payment);
     }
 
-    public List<PaymentResponse>getAllPaymentsForOrderId (Long orderId){
-        //check if order exists
+    public List<PaymentResponse> getAllPaymentsForOrderId(Long orderId) {
+        // check if order exists
         orderRepository.findById(orderId).orElseThrow(() -> new OrderNotFoundException(orderId));
 
-        //get all payments for the order    
+        // get all payments for the order
         List<Payment> payments = paymentRespository.findByOrderId(orderId);
 
-        //convert entities to response
-        List<PaymentResponse>responses = new ArrayList<>();
+        // convert entities to response
+        List<PaymentResponse> responses = new ArrayList<>();
 
-        for(Payment payment: payments){
+        for (Payment payment : payments) {
             responses.add(convertToResponse(payment));
         }
 
         return responses;
     }
 
-    @Transactional 
+    @Transactional
     public PaymentResponse refundPayment(Long paymentId) {
-        Payment payment = paymentRespository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
+        Payment payment = paymentRespository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
-        if(!PaymentStatus.SUCCESS.equals(payment.getStatus())) 
+        if (!PaymentStatus.SUCCESS.equals(payment.getStatus()))
             throw new CannotRefundPaymentException(paymentId);
 
         Refund refund = new Refund();
@@ -202,6 +194,35 @@ public class PaymentService {
         return convertToResponse(payment);
     }
 
+    public PaymentResponse reconcilePayment(Long paymentId) {
+        Payment payment = paymentRespository
+                .findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (!PaymentStatus.PENDING.equals(payment.getStatus())) {
+            throw new CannotReconcilePaymentException(paymentId);
+        }
+
+        // Ask processor what actually happened
+        PaymentStatus processorStatus = paymentProcessor.checkPaymentStatusInProcessor(
+                payment.getIdempotencyKey());
+
+        // Update our payment according to processor's actual state
+        if (PaymentStatus.SUCCESS.equals(processorStatus)) {
+
+            payment.setStatus(PaymentStatus.SUCCESS);
+
+        } else if (PaymentStatus.FAILED.equals(processorStatus)) {
+
+            payment.setStatus(PaymentStatus.FAILED);
+
+        }
+        // Save reconciled payment
+        payment = paymentRespository.save(payment);
+
+        return convertToResponse(payment);
+    }
+
     private PaymentResponse convertToResponse(Payment payment) {
 
         return new PaymentResponse(
@@ -209,7 +230,6 @@ public class PaymentService {
                 payment.getOrderId(),
                 payment.getAmount(),
                 payment.getStatus(),
-                payment.getProcessorTransactionId()
-        );
+                payment.getProcessorTransactionId());
     }
 }

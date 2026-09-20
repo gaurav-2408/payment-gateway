@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.paymentgateway.dto.ErrorResponse;
 import com.paymentgateway.exception.CannotCancelPaymentException;
+import com.paymentgateway.exception.CannotReconcilePaymentException;
 import com.paymentgateway.exception.CannotRefundPaymentException;
+import com.paymentgateway.exception.InvalidMerchantReferenceException;
 import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
 import com.paymentgateway.exception.OrderNotFoundException;
@@ -55,6 +57,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler (PaymentDeclinedException.class)
     public ResponseEntity<ErrorResponse> handlePaymentDeclinedException(PaymentDeclinedException exception){
+        return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new ErrorResponse(exception.getMessage()));
+    }
+
+    @ExceptionHandler (CannotReconcilePaymentException.class)
+    public ResponseEntity<ErrorResponse> handleCannotReconcilePaymentException(CannotReconcilePaymentException exception){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
+    }
+
+    @ExceptionHandler (InvalidMerchantReferenceException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidMerchantReferenceException(InvalidMerchantReferenceException exception){
         return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(new ErrorResponse(exception.getMessage()));
     }
 }
