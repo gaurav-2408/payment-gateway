@@ -7,11 +7,32 @@ import org.springframework.stereotype.Component;
 import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.PaymentDeclinedException;
 import com.paymentgateway.exception.PaymentTimeoutException;
+import com.paymentgateway.repository.ProcessorPaymentRepository;
+import com.paymentgateway.entity.PaymentStatus;
 
+import java.util.Random;
 import java.util.UUID;
 
 @Component
 public class FakePaymentProcessor implements PaymentProcessor {
+
+    private final ProcessorPaymentRepository processorPaymentRepository;
+
+    public FakePaymentProcessor(ProcessorPaymentRepository processorPaymentRepository) {
+        this.processorPaymentRepository = processorPaymentRepository;
+    }
+
+    private PaymentStatus generateProcessorOutcome() {
+
+        int random = new Random().nextInt(100);
+
+        if (random >= 50) {
+            return PaymentStatus.SUCCESS;
+        } else {
+            return PaymentStatus.FAILED;
+        }
+    }
+
     @Override
     public String processPayment(BigDecimal amount, String paymentMethodToken) {
 
@@ -39,4 +60,10 @@ public class FakePaymentProcessor implements PaymentProcessor {
                 throw new InvalidTokenException(paymentMethodToken);
         }
     }
+
+    @Override 
+    public PaymentStatus checkPaymentStatusInProcessor(Long orderId){
+        return 
+    }
+
 }

@@ -16,6 +16,7 @@ import com.paymentgateway.entity.PaymentStatus;
 import com.paymentgateway.entity.Refund;
 import com.paymentgateway.entity.RefundStatus;
 import com.paymentgateway.exception.CannotCancelPaymentException;
+import com.paymentgateway.exception.CannotReconcilePaymentException;
 import com.paymentgateway.exception.CannotRefundPaymentException;
 import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.OrderAlreadyPaidException;
@@ -200,6 +201,17 @@ public class PaymentService {
         payment = paymentRespository.save(payment);
 
         return convertToResponse(payment);
+    }
+
+    public PaymentResponse reconcilePayment(Long paymentId){
+        Payment payment = paymentRespository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if(PaymentStatus.PENDING.equals(payment.getStatus())){
+
+        }
+        else    
+            throw new CannotReconcilePaymentException(paymentId);
+
     }
 
     private PaymentResponse convertToResponse(Payment payment) {
