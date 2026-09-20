@@ -4,11 +4,14 @@ import java.math.BigDecimal;
 
 import org.springframework.stereotype.Component;
 
+import com.paymentgateway.exception.InvalidMerchantReferenceException;
 import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.PaymentDeclinedException;
 import com.paymentgateway.exception.PaymentTimeoutException;
 import com.paymentgateway.repository.ProcessorPaymentRepository;
+
 import com.paymentgateway.entity.PaymentStatus;
+import com.paymentgateway.entity.ProcessorPayment;
 
 import java.util.Random;
 import java.util.UUID;
@@ -55,7 +58,16 @@ public class FakePaymentProcessor implements PaymentProcessor {
 
             case "tok_timeout":
                 try {
-                    Thread.sleep(5000); // simulate timeout scenario
+                    ProcessorPayment processorPayment = new ProcessorPayment();
+
+                    processorPayment.setStatus(generateProcessorOutcome());
+                    processorPayment.setMerchantReference(paymentMethodToken);
+                    processorPayment.setProcessorTransactionId("TXN-" + UUID.randomUUID());
+                    // processorPayment.setOrderId(orderid);
+
+                    processorPaymentRepository.save(processorPayment);
+
+                    Thread.sleep(3000); // simulate timeout scenario
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -66,9 +78,14 @@ public class FakePaymentProcessor implements PaymentProcessor {
         }
     }
 
-    @Override 
-    public PaymentStatus checkPaymentStatusInProcessor(Long orderId){
-        return 
+    @Override
+    public PaymentStatus checkPaymentStatusInProcessor(String merchantReference) {
+        ProcessorPayment processorPayment = processorPaymentRepository
+                .findByMerchantReference(merchantReference)
+                .orElseThrow(() -> new InvalidMerchantReferenceException());
+
+        return processorPayment.getStatus();
+
     }
 
 }

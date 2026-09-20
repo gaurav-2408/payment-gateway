@@ -20,7 +20,7 @@ public class ProcessorPayment {
 
     private String processorTransactionId;
 
-    private Long orderId;
+    //private Long orderId;
 
     private String merchantReference;
 
