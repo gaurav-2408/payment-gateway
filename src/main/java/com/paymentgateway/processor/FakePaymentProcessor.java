@@ -54,6 +54,11 @@ public class FakePaymentProcessor implements PaymentProcessor {
                 throw new PaymentDeclinedException();
 
             case "tok_timeout":
+                try {
+                    Thread.sleep(5000); // simulate timeout scenario
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
                 throw new PaymentTimeoutException(null);
 
             default:
