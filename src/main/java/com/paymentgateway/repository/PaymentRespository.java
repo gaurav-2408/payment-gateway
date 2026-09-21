@@ -17,7 +17,7 @@ public interface PaymentRespository
 
     Optional<Payment> findByIdempotencyKey(String idempotencyKey);
 
-    Optional<Payment> findByOrderIdAndStatus(Long orderId, PaymentStatus paymentStatus);
+    boolean existsByOrderIdAndStatusIn(Long orderId, List<PaymentStatus> statuses);
 
     List<Payment> findByOrderId(Long orderId);
 

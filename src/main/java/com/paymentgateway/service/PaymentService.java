@@ -70,11 +70,17 @@ public class PaymentService {
         // 2.1 If payment with success status already exists then with changing
         // idempotency key we were able to carry multiple payment for same order, so we
         // handled this here
-        Optional<Payment> successfulPayment = paymentRespository.findByOrderIdAndStatus(request.getOrderId(),
-                PaymentStatus.SUCCESS);
+        boolean hasBlockingPayment = paymentRespository.existsByOrderIdAndStatusIn(
+                request.getOrderId(),
+                List.of(
+                        PaymentStatus.SUCCESS,
+                        PaymentStatus.PROCESSING,
+                        PaymentStatus.PENDING,
+                        PaymentStatus.REFUNDED));
 
-        if (successfulPayment.isPresent())
+        if (hasBlockingPayment) {
             throw new OrderAlreadyPaidException(request.getOrderId());
+        }
 
         // 3. Create PROCESSING payment
         Payment payment = new Payment();
