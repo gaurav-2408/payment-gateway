@@ -2,6 +2,8 @@ package com.paymentgateway.dto;
 
 import com.paymentgateway.entity.PaymentStatus;
 
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -15,5 +17,6 @@ public class ProcessorPaymentResponse {
 
     private String merchantReference;
 
+    @Enumerated (EnumType.STRING)
     private PaymentStatus status;
 }

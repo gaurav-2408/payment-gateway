@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 
 public interface  PaymentProcessor {
     
-    String processPayment(BigDecimal amount, String paymentMethodToken);
+    String processPayment(BigDecimal amount, String paymentMethodToken, String merchantReference);
     
     ProcessorPaymentResponse checkPaymentStatusInProcessor(String merchantReference);
 }

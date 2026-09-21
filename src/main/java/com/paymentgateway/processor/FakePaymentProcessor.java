@@ -37,7 +37,7 @@ public class FakePaymentProcessor implements PaymentProcessor {
     }
 
     @Override
-    public String processPayment(BigDecimal amount, String paymentMethodToken) {
+    public String processPayment(BigDecimal amount, String paymentMethodToken, String merchantReference) {
 
         System.out.println("Calling External Payment Processor");
         System.out.println("Charging amount: " + amount);
@@ -61,7 +61,7 @@ public class FakePaymentProcessor implements PaymentProcessor {
                     ProcessorPayment processorPayment = new ProcessorPayment();
 
                     processorPayment.setStatus(generateProcessorOutcome());
-                    processorPayment.setMerchantReference(paymentMethodToken);
+                    processorPayment.setMerchantReference(merchantReference);
                     processorPayment.setProcessorTransactionId("TXN-" + UUID.randomUUID());
                     // processorPayment.setOrderId(orderid);
 

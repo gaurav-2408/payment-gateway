@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.paymentgateway.dto.PaymentRequest;
 import com.paymentgateway.dto.PaymentResponse;
-import com.paymentgateway.dto.ProcessorPaymentResponse;
 import com.paymentgateway.service.PaymentService;
 
 import jakarta.validation.Valid;

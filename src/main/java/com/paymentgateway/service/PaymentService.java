@@ -94,7 +94,8 @@ public class PaymentService {
             // 4. External processor call - waits 25 seconds
             String processorTransactionId = paymentProcessor.processPayment(
                     order.getAmount(),
-                    request.getPaymentMethodToken());
+                    request.getPaymentMethodToken(),
+                    request.getIdempotencyKey());
 
             // 5. Set SUCCESS only if DB status is still PROCESSING
             paymentRespository.markSuccessIfProcessing(
