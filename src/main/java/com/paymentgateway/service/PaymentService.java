@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.paymentgateway.dto.PaymentRequest;
 import com.paymentgateway.dto.PaymentResponse;
+import com.paymentgateway.dto.ProcessorPaymentResponse;
 import com.paymentgateway.entity.Order;
 import com.paymentgateway.entity.Payment;
 import com.paymentgateway.entity.PaymentStatus;
@@ -195,6 +196,7 @@ public class PaymentService {
     }
 
     public PaymentResponse reconcilePayment(Long paymentId) {
+
         Payment payment = paymentRespository
                 .findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
@@ -203,21 +205,21 @@ public class PaymentService {
             throw new CannotReconcilePaymentException(paymentId);
         }
 
-        // Ask processor what actually happened
-        PaymentStatus processorStatus = paymentProcessor.checkPaymentStatusInProcessor(
+        ProcessorPaymentResponse processorResponse = paymentProcessor.checkPaymentStatusInProcessor(
                 payment.getIdempotencyKey());
 
-        // Update our payment according to processor's actual state
-        if (PaymentStatus.SUCCESS.equals(processorStatus)) {
+        if (PaymentStatus.SUCCESS.equals(processorResponse.getStatus())) {
 
             payment.setStatus(PaymentStatus.SUCCESS);
 
-        } else if (PaymentStatus.FAILED.equals(processorStatus)) {
+            payment.setProcessorTransactionId(
+                    processorResponse.getProcessorTransactionId());
+
+        } else if (PaymentStatus.FAILED.equals(processorResponse.getStatus())) {
 
             payment.setStatus(PaymentStatus.FAILED);
-
         }
-        // Save reconciled payment
+
         payment = paymentRespository.save(payment);
 
         return convertToResponse(payment);

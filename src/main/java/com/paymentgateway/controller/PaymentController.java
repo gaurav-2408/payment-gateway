@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.paymentgateway.dto.PaymentRequest;
 import com.paymentgateway.dto.PaymentResponse;
+import com.paymentgateway.dto.ProcessorPaymentResponse;
 import com.paymentgateway.service.PaymentService;
 
 import jakarta.validation.Valid;
@@ -53,5 +54,12 @@ public class PaymentController {
         PaymentResponse payment = paymentService.refundPayment(PaymentId);
 
         return ResponseEntity.ok(payment);
+    }
+
+    @PostMapping ("/{paymentId}/reconcile")
+    public ResponseEntity<PaymentResponse> reconcilePayment(@Valid @PathVariable("paymentId") Long paymentId){
+        PaymentResponse paymentResponse = paymentService.reconcilePayment(paymentId);
+
+        return ResponseEntity.ok(paymentResponse);
     }
 }

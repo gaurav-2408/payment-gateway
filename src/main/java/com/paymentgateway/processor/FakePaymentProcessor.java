@@ -9,7 +9,7 @@ import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.PaymentDeclinedException;
 import com.paymentgateway.exception.PaymentTimeoutException;
 import com.paymentgateway.repository.ProcessorPaymentRepository;
-
+import com.paymentgateway.dto.ProcessorPaymentResponse;
 import com.paymentgateway.entity.PaymentStatus;
 import com.paymentgateway.entity.ProcessorPayment;
 
@@ -79,12 +79,16 @@ public class FakePaymentProcessor implements PaymentProcessor {
     }
 
     @Override
-    public PaymentStatus checkPaymentStatusInProcessor(String merchantReference) {
+    public ProcessorPaymentResponse checkPaymentStatusInProcessor(String merchantReference) {
         ProcessorPayment processorPayment = processorPaymentRepository
                 .findByMerchantReference(merchantReference)
                 .orElseThrow(() -> new InvalidMerchantReferenceException());
 
-        return processorPayment.getStatus();
+        return new ProcessorPaymentResponse(
+                processorPayment.getId(),
+                processorPayment.getProcessorTransactionId(),
+                processorPayment.getMerchantReference(),
+                processorPayment.getStatus());
 
     }
 
