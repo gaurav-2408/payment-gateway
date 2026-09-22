@@ -9,7 +9,7 @@ import com.paymentgateway.exception.InvalidTokenException;
 import com.paymentgateway.exception.PaymentDeclinedException;
 import com.paymentgateway.exception.PaymentTimeoutException;
 import com.paymentgateway.repository.ProcessorPaymentRepository;
-
+import com.paymentgateway.dto.ProcessorPaymentResponse;
 import com.paymentgateway.entity.PaymentStatus;
 import com.paymentgateway.entity.ProcessorPayment;
 
@@ -37,7 +37,7 @@ public class FakePaymentProcessor implements PaymentProcessor {
     }
 
     @Override
-    public String processPayment(BigDecimal amount, String paymentMethodToken) {
+    public String processPayment(BigDecimal amount, String paymentMethodToken, String merchantReference) {
 
         System.out.println("Calling External Payment Processor");
         System.out.println("Charging amount: " + amount);
@@ -61,7 +61,7 @@ public class FakePaymentProcessor implements PaymentProcessor {
                     ProcessorPayment processorPayment = new ProcessorPayment();
 
                     processorPayment.setStatus(generateProcessorOutcome());
-                    processorPayment.setMerchantReference(paymentMethodToken);
+                    processorPayment.setMerchantReference(merchantReference);
                     processorPayment.setProcessorTransactionId("TXN-" + UUID.randomUUID());
                     // processorPayment.setOrderId(orderid);
 
@@ -79,12 +79,16 @@ public class FakePaymentProcessor implements PaymentProcessor {
     }
 
     @Override
-    public PaymentStatus checkPaymentStatusInProcessor(String merchantReference) {
+    public ProcessorPaymentResponse checkPaymentStatusInProcessor(String merchantReference) {
         ProcessorPayment processorPayment = processorPaymentRepository
                 .findByMerchantReference(merchantReference)
                 .orElseThrow(() -> new InvalidMerchantReferenceException());
 
-        return processorPayment.getStatus();
+        return new ProcessorPaymentResponse(
+                processorPayment.getId(),
+                processorPayment.getProcessorTransactionId(),
+                processorPayment.getMerchantReference(),
+                processorPayment.getStatus());
 
     }
 

@@ -54,4 +54,11 @@ public class PaymentController {
 
         return ResponseEntity.ok(payment);
     }
+
+    @PostMapping ("/{paymentId}/reconcile")
+    public ResponseEntity<PaymentResponse> reconcilePayment(@Valid @PathVariable("paymentId") Long paymentId){
+        PaymentResponse paymentResponse = paymentService.reconcilePayment(paymentId);
+
+        return ResponseEntity.ok(paymentResponse);
+    }
 }

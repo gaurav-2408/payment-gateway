@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.paymentgateway.dto.PaymentRequest;
 import com.paymentgateway.dto.PaymentResponse;
+import com.paymentgateway.dto.ProcessorPaymentResponse;
 import com.paymentgateway.entity.Order;
 import com.paymentgateway.entity.Payment;
 import com.paymentgateway.entity.PaymentStatus;
@@ -51,6 +52,7 @@ public class PaymentService {
         this.refundRepository = refundRepository;
     }
 
+    @Transactional 
     public PaymentResponse processPayment(PaymentRequest request) {
 
         // 1. Idempotency check
@@ -62,18 +64,23 @@ public class PaymentService {
         }
 
         // 2. Validate order
-        Order order = orderRepository
-                .findById(request.getOrderId())
+        Order order = orderRepository.findWithLockById(request.getOrderId())
                 .orElseThrow(() -> new OrderNotFoundException(request.getOrderId()));
 
         // 2.1 If payment with success status already exists then with changing
         // idempotency key we were able to carry multiple payment for same order, so we
         // handled this here
-        Optional<Payment> successfulPayment = paymentRespository.findByOrderIdAndStatus(request.getOrderId(),
-                PaymentStatus.SUCCESS);
+        boolean hasBlockingPayment = paymentRespository.existsByOrderIdAndStatusIn(
+                request.getOrderId(),
+                List.of(
+                        PaymentStatus.SUCCESS,
+                        PaymentStatus.PROCESSING,
+                        PaymentStatus.PENDING,
+                        PaymentStatus.REFUNDED));
 
-        if (successfulPayment.isPresent())
+        if (hasBlockingPayment) {
             throw new OrderAlreadyPaidException(request.getOrderId());
+        }
 
         // 3. Create PROCESSING payment
         Payment payment = new Payment();
@@ -93,7 +100,8 @@ public class PaymentService {
             // 4. External processor call - waits 25 seconds
             String processorTransactionId = paymentProcessor.processPayment(
                     order.getAmount(),
-                    request.getPaymentMethodToken());
+                    request.getPaymentMethodToken(),
+                    request.getIdempotencyKey());
 
             // 5. Set SUCCESS only if DB status is still PROCESSING
             paymentRespository.markSuccessIfProcessing(
@@ -195,6 +203,7 @@ public class PaymentService {
     }
 
     public PaymentResponse reconcilePayment(Long paymentId) {
+
         Payment payment = paymentRespository
                 .findById(paymentId)
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
@@ -203,21 +212,21 @@ public class PaymentService {
             throw new CannotReconcilePaymentException(paymentId);
         }
 
-        // Ask processor what actually happened
-        PaymentStatus processorStatus = paymentProcessor.checkPaymentStatusInProcessor(
+        ProcessorPaymentResponse processorResponse = paymentProcessor.checkPaymentStatusInProcessor(
                 payment.getIdempotencyKey());
 
-        // Update our payment according to processor's actual state
-        if (PaymentStatus.SUCCESS.equals(processorStatus)) {
+        if (PaymentStatus.SUCCESS.equals(processorResponse.getStatus())) {
 
             payment.setStatus(PaymentStatus.SUCCESS);
 
-        } else if (PaymentStatus.FAILED.equals(processorStatus)) {
+            payment.setProcessorTransactionId(
+                    processorResponse.getProcessorTransactionId());
+
+        } else if (PaymentStatus.FAILED.equals(processorResponse.getStatus())) {
 
             payment.setStatus(PaymentStatus.FAILED);
-
         }
-        // Save reconciled payment
+
         payment = paymentRespository.save(payment);
 
         return convertToResponse(payment);
