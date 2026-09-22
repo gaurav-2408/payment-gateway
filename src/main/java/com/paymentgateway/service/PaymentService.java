@@ -39,20 +39,22 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final PaymentRespository paymentRespository;
     private final RefundRepository refundRepository;
+    private final PaymentCreationService paymentCreationService;
 
     public PaymentService(
             PaymentProcessor paymentProcessor,
             OrderRepository orderRepository,
             PaymentRespository paymentRespository,
-            RefundRepository refundRepository) {
+            RefundRepository refundRepository,
+            PaymentCreationService paymentCreationService) {
 
         this.paymentProcessor = paymentProcessor;
         this.orderRepository = orderRepository;
         this.paymentRespository = paymentRespository;
         this.refundRepository = refundRepository;
+        this.paymentCreationService = paymentCreationService;
     }
 
-    @Transactional 
     public PaymentResponse processPayment(PaymentRequest request) {
 
         // 1. Idempotency check
@@ -64,34 +66,34 @@ public class PaymentService {
         }
 
         // 2. Validate order
-        Order order = orderRepository.findWithLockById(request.getOrderId())
-                .orElseThrow(() -> new OrderNotFoundException(request.getOrderId()));
 
         // 2.1 If payment with success status already exists then with changing
         // idempotency key we were able to carry multiple payment for same order, so we
         // handled this here
-        boolean hasBlockingPayment = paymentRespository.existsByOrderIdAndStatusIn(
-                request.getOrderId(),
-                List.of(
-                        PaymentStatus.SUCCESS,
-                        PaymentStatus.PROCESSING,
-                        PaymentStatus.PENDING,
-                        PaymentStatus.REFUNDED));
+        // boolean hasBlockingPayment = paymentRespository.existsByOrderIdAndStatusIn(
+        //         request.getOrderId(),
+        //         List.of(
+        //                 PaymentStatus.SUCCESS,
+        //                 PaymentStatus.PROCESSING,
+        //                 PaymentStatus.PENDING,
+        //                 PaymentStatus.REFUNDED));
 
-        if (hasBlockingPayment) {
-            throw new OrderAlreadyPaidException(request.getOrderId());
-        }
+        // if (hasBlockingPayment) {
+        //     throw new OrderAlreadyPaidException(request.getOrderId());
+        // }
 
-        // 3. Create PROCESSING payment
-        Payment payment = new Payment();
+        // // 3. Create PROCESSING payment
+        // Payment payment = new Payment();
 
-        payment.setOrderId(order.getId());
-        payment.setAmount(order.getAmount());
-        payment.setIdempotencyKey(request.getIdempotencyKey());
-        payment.setStatus(PaymentStatus.PROCESSING);
-        payment.setCreatedAt(LocalDateTime.now());
+        // payment.setOrderId(order.getId());
+        // payment.setAmount(order.getAmount());
+        // payment.setIdempotencyKey(request.getIdempotencyKey());
+        // payment.setStatus(PaymentStatus.PROCESSING);
+        // payment.setCreatedAt(LocalDateTime.now());
 
-        payment = paymentRespository.save(payment);
+        // payment = paymentRespository.save(payment);
+
+        Payment payment = paymentCreationService.createProcessingPayment(request);
 
         Long paymentId = payment.getId();
 
@@ -99,7 +101,7 @@ public class PaymentService {
 
             // 4. External processor call - waits 25 seconds
             String processorTransactionId = paymentProcessor.processPayment(
-                    order.getAmount(),
+                    payment.getAmount(),
                     request.getPaymentMethodToken(),
                     request.getIdempotencyKey());
 
