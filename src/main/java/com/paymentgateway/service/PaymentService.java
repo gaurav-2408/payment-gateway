@@ -52,6 +52,7 @@ public class PaymentService {
         this.refundRepository = refundRepository;
     }
 
+    @Transactional 
     public PaymentResponse processPayment(PaymentRequest request) {
 
         // 1. Idempotency check
@@ -63,8 +64,7 @@ public class PaymentService {
         }
 
         // 2. Validate order
-        Order order = orderRepository
-                .findById(request.getOrderId())
+        Order order = orderRepository.findWithLockById(request.getOrderId())
                 .orElseThrow(() -> new OrderNotFoundException(request.getOrderId()));
 
         // 2.1 If payment with success status already exists then with changing
