@@ -57,20 +57,17 @@ public class FakePaymentProcessor implements PaymentProcessor {
                 throw new PaymentDeclinedException();
 
             case "tok_timeout":
-                try {
-                    ProcessorPayment processorPayment = new ProcessorPayment();
 
-                    processorPayment.setStatus(generateProcessorOutcome());
-                    processorPayment.setMerchantReference(merchantReference);
-                    processorPayment.setProcessorTransactionId("TXN-" + UUID.randomUUID());
-                    // processorPayment.setOrderId(orderid);
+                ProcessorPayment processorPayment = new ProcessorPayment();
 
-                    processorPaymentRepository.save(processorPayment);
+                processorPayment.setStatus(generateProcessorOutcome());
+                processorPayment.setMerchantReference(merchantReference);
+                processorPayment.setProcessorTransactionId("TXN-" + UUID.randomUUID());
 
-                    Thread.sleep(3000); // simulate timeout scenario
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+                //webhook call, maybe
+
+                processorPaymentRepository.save(processorPayment);
+
                 throw new PaymentTimeoutException(null);
 
             default:
