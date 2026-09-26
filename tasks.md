@@ -2,4 +2,6 @@
 
 [X] - reconciliation endpoint pending
 
-[] - Concurrent requests
+[X] - Concurrent requests
+
+[] - New tasks to discuss
